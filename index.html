@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaleido Icon Explorer</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-elevated: #f8f9fb;
+    --bg-card: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #0f172a;
+    --text-muted: #6b7280;
+    --text-subtle: #9ca3af;
+    --accent: #2563eb;
+    --accent-bg: #eff6ff;
+    --shadow: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06);
+    --shadow-lg: 0 10px 25px rgba(15,23,42,0.1), 0 4px 10px rgba(15,23,42,0.06);
+    --radius: 8px;
+    --radius-sm: 6px;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0b1220;
+    --bg-elevated: #131b2e;
+    --bg-card: #1a2238;
+    --border: #2a334a;
+    --border-strong: #3a4360;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-subtle: #64748b;
+    --accent: #60a5fa;
+    --accent-bg: #1e293b;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.2s, color 0.2s;
+  }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, select { font: inherit; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  .header {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    margin: 16px;
+    overflow: hidden;
+  }
+  .header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-muted); font-size: 13px; }
+
+  /* Control pills */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .pill:hover { border-color: var(--border-strong); background: var(--bg-elevated); }
+  .pill.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+  .pill svg { width: 14px; height: 14px; }
+
+  .toggle-group {
+    display: inline-flex;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px;
+  }
+  .toggle-group button {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .toggle-group button.active { background: var(--bg-card); color: var(--text); box-shadow: var(--shadow); }
+  .toggle-group button svg { width: 14px; height: 14px; }
+
+  /* Dropdown */
+  .dropdown { position: relative; }
+  .dropdown-btn { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; font-size: 13px; font-weight: 500; }
+  .dropdown-btn:hover { border-color: var(--border-strong); }
+  .dropdown-btn .count {
+    background: var(--accent-bg); color: var(--accent);
+    border-radius: 999px; padding: 1px 7px; font-size: 11px; font-weight: 600;
+  }
+  .dropdown-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    min-width: 220px;
+    padding: 6px;
+    z-index: 50;
+    display: none;
+  }
+  .dropdown-panel.open { display: block; }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .dropdown-item:hover { background: var(--bg-elevated); }
+  .dropdown-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+  .brand-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+  .dropdown-item .label-right { color: var(--text-subtle); font-size: 11px; margin-left: auto; }
+
+  /* Toolbar (filters) */
+  .toolbar {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 13px;
+  }
+  .search-wrap input:focus { outline: none; border-color: var(--accent); }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-subtle); }
+  .filter-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+
+  .meta-bar {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .meta-bar code { font-family: var(--font-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--text); }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    padding: 16px;
+  }
+  .icon-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .icon-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+  }
+  .icon-preview {
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+  }
+  .icon-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .icon-meta {
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+  }
+  .icon-name {
+    font-family: var(--font-mono);
+    color: var(--text);
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .icon-card .brand-dot { width: 8px; height: 8px; flex-shrink: 0; }
+
+  /* List view */
+  .grid.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .list-view .icon-card {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    align-items: center;
+    padding: 0;
+  }
+  .list-view .icon-preview {
+    height: 48px;
+    width: 48px;
+    padding: 8px;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+  .list-view .icon-meta {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .list-view .icon-name {
+    -webkit-line-clamp: 1;
+  }
+  .list-view .icon-path {
+    font-size: 10px;
+    color: var(--text-subtle);
+    margin-left: auto;
+    padding: 0 12px;
+    font-family: var(--font-mono);
+    display: none;
+  }
+  @media (min-width: 700px) {
+    .list-view .icon-path { display: block; }
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+  }
+  .empty h2 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    backdrop-filter: blur(2px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg-card);
+    border-radius: 12px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .modal-title {
+    font-size: 14px;
+    font-family: var(--font-mono);
+    word-break: break-all;
+    color: var(--text);
+  }
+  .modal-close {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); color: var(--text-muted);
+  }
+  .modal-close:hover { background: var(--bg-elevated); color: var(--text); }
+  .modal-body { padding: 20px; }
+  .modal-preview {
+    height: 220px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    margin-bottom: 16px;
+  }
+  .modal-preview img { max-width: 100%; max-height: 100%; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 8px 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .meta-grid dt { color: var(--text-muted); }
+  .meta-grid dd { color: var(--text); font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
+  .meta-grid .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 8px; background: var(--bg-elevated); border-radius: 4px;
+    font-family: var(--font); font-size: 12px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--border-strong); background: var(--bg-elevated); }
+  .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent); opacity: 0.9; }
+  .btn svg { width: 14px; height: 14px; }
+  .btn.copied { background: #10b981; color: white; border-color: #10b981; }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .header { margin: 8px; }
+    .header-bar, .toolbar, .meta-bar { padding: 10px 12px; }
+    .container { padding: 0 12px; }
+    .title { font-size: 16px; }
+    .toggle-group button span { display: none; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; padding: 12px; }
+    .icon-preview { height: 72px; padding: 10px; }
+    .modal-preview { height: 180px; padding: 24px; }
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    box-shadow: var(--shadow-lg);
+    transition: transform 0.2s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="header" id="app">
+  <div class="header-bar">
+    <div class="header-left">
+      <div class="title">Kaleido Icon Explorer</div>
+      <span class="subtitle">·</span>
+      <span class="subtitle" id="totalCount">…</span>
+    </div>
+    <div class="header-right">
+      <div class="toggle-group" role="tablist">
+        <button id="viewGrid" class="active" aria-label="Grid view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span>Grid</span>
+        </button>
+        <button id="viewList" aria-label="List view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+          <span>List</span>
+        </button>
+      </div>
+      <button class="pill" id="themeToggle" aria-label="Toggle theme">
+        <svg id="themeIconLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg id="themeIconDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="search" id="search" placeholder="Search icons by name…" autocomplete="off">
+    </div>
+
+    <div class="dropdown" id="brandDropdown">
+      <button class="dropdown-btn">
+        <span>Brands</span>
+        <span class="count" id="brandCountBadge">5</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="dropdown-panel" id="brandPanel"></div>
+    </div>
+
+    <div class="filter-row" id="useCaseRow"></div>
+    <div class="filter-row" id="typeRow">
+      <button class="pill active" data-type="all">All types</button>
+      <button class="pill" data-type="utility">Utility</button>
+      <button class="pill" data-type="illustrative">Illustrative</button>
+    </div>
+  </div>
+
+  <div class="filter-row" id="categoryRow" style="padding:10px 16px;background:var(--bg-card);border-bottom:1px solid var(--border);display:none;flex-wrap:wrap;"></div>
+
+  <div class="meta-bar">
+    <div><span id="visibleCount">…</span> shown · <span id="filteredCount">…</span> matching</div>
+    <div>SPEC: <code>brand / use-case / category / name</code></div>
+  </div>
+
+  <div id="grid" class="grid"></div>
+  <div id="loadMore" style="display:none;padding:16px;text-align:center;border-top:1px solid var(--border);">
+    <button class="btn" id="loadMoreBtn">Load 200 more</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" id="modalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-preview"><img id="modalImg" alt=""></div>
+      <dl class="meta-grid">
+        <dt>Brand</dt><dd><span class="badge"><span class="brand-dot" id="modalBrandDot"></span><span id="modalBrand"></span></span></dd>
+        <dt>Use case</dt><dd id="modalUseCase"></dd>
+        <dt>Category</dt><dd id="modalCategory"></dd>
+        <dt>Name</dt><dd id="modalName"></dd>
+        <dt>Path</dt><dd id="modalPath"></dd>
+        <dt>Type</dt><dd id="modalType"></dd>
+      </dl>
+      <div class="modal-actions">
+        <button class="btn primary" id="copyName">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy name
+        </button>
+        <button class="btn" id="copyPath">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy path
+        </button>
+        <button class="btn" id="copySvg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Copy SVG
+        </button>
+        <a class="btn" id="download" download>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const state = {
+    manifest: null,
+    selectedBrands: new Set(),
+    useCase: 'all',
+    category: 'all',
+    type: 'all',
+    search: '',
+    view: 'grid',
+    renderLimit: 200,
+    filtered: []
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const toast = (msg) => {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.remove('show'), 1600);
+  };
+
+  // Theme
+  const applyTheme = (theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    $('themeIconLight').style.display = theme === 'dark' ? 'none' : '';
+    $('themeIconDark').style.display = theme === 'dark' ? '' : 'none';
+    try { localStorage.setItem('kaleido-theme', theme); } catch(e) {}
+  };
+  let theme = 'light';
+  try { theme = localStorage.getItem('kaleido-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch(e) {}
+  applyTheme(theme);
+  $('themeToggle').addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+  // Load manifest
+  fetch('manifest.json').then(r => r.json()).then(m => {
+    state.manifest = m;
+    state.selectedBrands = new Set(m.brands.map(b => b.key));
+    initBrandFilter();
+    initUseCaseFilter();
+    $('totalCount').textContent = `${m.icons.length.toLocaleString()} icons across ${m.brands.length} brands`;
+    update();
+  }).catch(e => {
+    $('grid').innerHTML = `<div class="empty"><h2>Couldn't load manifest.json</h2><p>Make sure index.html, manifest.json, and the icons/ folder are deployed together.</p></div>`;
+    console.error(e);
+  });
+
+  function initBrandFilter() {
+    const panel = $('brandPanel');
+    panel.innerHTML = state.manifest.brands.map(b => `
+      <label class="dropdown-item">
+        <input type="checkbox" data-brand="${b.key}" checked>
+        <span class="brand-dot" style="background:${b.color}"></span>
+        <span>${b.label}</span>
+        <span class="label-right" data-brand-count="${b.key}">0</span>
+      </label>
+    `).join('');
+    panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const key = cb.dataset.brand;
+        if (cb.checked) state.selectedBrands.add(key);
+        else state.selectedBrands.delete(key);
+        $('brandCountBadge').textContent = state.selectedBrands.size;
+        update();
+      });
+    });
+    const btn = $('brandDropdown').querySelector('.dropdown-btn');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+    });
+  }
+
+  function initUseCaseFilter() {
+    const useCases = ['all', ...new Set(state.manifest.icons.map(i => i.useCase))];
+    $('useCaseRow').innerHTML = useCases.map(uc => `
+      <button class="pill ${uc === 'all' ? 'active' : ''}" data-usecase="${uc}">${uc === 'all' ? 'All' : uc}</button>
+    `).join('');
+    $('useCaseRow').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-usecase]');
+      if (!btn) return;
+      state.useCase = btn.dataset.usecase;
+      state.category = 'all';
+      $('useCaseRow').querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      renderCategoryRow();
+      update();
+    });
+    renderCategoryRow();
+  }
+
+  function renderCategoryRow() {
+    const row = $('categoryRow');
+    if (state.useCase === 'all') { row.style.display = 'none'; return; }
+    const cats = ['all', ...new Set(state.manifest.icons.filter(i => i.useCase === state.useCase).map(i => i.category))].sort((a,b)=>a==='all'?-1:b==='all'?1:a.localeCompare(b));
+    row.style.display = 'flex';
+    row.innerHTML = cats.map(c => `
+      <button class="pill ${c === state.category ? 'active' : ''}" data-cat="${c}">${c === 'all' ? 'All categories' : c}</button>
+    `).join('');
+    row.onclick = (e) => {
+      const btn = e.target.closest('button[data-cat]');
+      if (!btn) return;
+      state.category = btn.dataset.cat;
+      row.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      update();
+    };
+  }
+
+  // Type filter
+  $('typeRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-type]');
+    if (!btn) return;
+    state.type = btn.dataset.type;
+    $('typeRow').querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    update();
+  });
+
+  // View toggle
+  $('viewGrid').addEventListener('click', () => { state.view = 'grid'; $('viewGrid').classList.add('active'); $('viewList').classList.remove('active'); render(); });
+  $('viewList').addEventListener('click', () => { state.view = 'list'; $('viewList').classList.add('active'); $('viewGrid').classList.remove('active'); render(); });
+
+  // Search
+  let searchTimer;
+  $('search').addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { state.search = e.target.value.trim().toLowerCase(); state.renderLimit = 200; update(); }, 120);
+  });
+
+  // Load more
+  $('loadMoreBtn').addEventListener('click', () => { state.renderLimit += 200; render(); });
+
+  function update() {
+    const { manifest, selectedBrands, useCase, category, type, search } = state;
+    if (!manifest) return;
+    state.filtered = manifest.icons.filter(i => {
+      if (!selectedBrands.has(i.brand)) return false;
+      if (useCase !== 'all' && i.useCase !== useCase) return false;
+      if (category !== 'all' && i.category !== category) return false;
+      if (type === 'utility' && i.isIllus) return false;
+      if (type === 'illustrative' && !i.isIllus) return false;
+      if (search && !i.name.toLowerCase().includes(search) && !i.baseName.toLowerCase().includes(search)) return false;
+      return true;
+    });
+    state.renderLimit = Math.min(state.renderLimit, 200);
+    if (search) state.renderLimit = state.filtered.length; // show all when searching
+    render();
+    updateBrandCounts();
+  }
+
+  function updateBrandCounts() {
+    const counts = {};
+    for (const i of state.filtered) counts[i.brand] = (counts[i.brand] || 0) + 1;
+    state.manifest.brands.forEach(b => {
+      const el = document.querySelector(`[data-brand-count="${b.key}"]`);
+      if (el) el.textContent = (counts[b.key] || 0).toLocaleString();
+    });
+  }
+
+  function render() {
+    const grid = $('grid');
+    grid.className = 'grid' + (state.view === 'list' ? ' list-view' : '');
+    const total = state.filtered.length;
+    const limit = state.renderLimit;
+    const items = state.filtered.slice(0, limit);
+    $('visibleCount').textContent = items.length.toLocaleString();
+    $('filteredCount').textContent = total.toLocaleString();
+    $('loadMore').style.display = total > items.length ? '' : 'none';
+    $('loadMoreBtn').textContent = `Load ${Math.min(200, total - items.length)} more`;
+    if (!total) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><h2>No icons match</h2><p>Try adjusting filters or clearing the search.</p></div>`;
+      return;
+    }
+    const brandColor = Object.fromEntries(state.manifest.brands.map(b => [b.key, b.color]));
+    grid.innerHTML = items.map(i => `
+      <div class="icon-card" data-idx="${state.filtered.indexOf(i)}">
+        <div class="icon-preview"><img src="${encodeURI(i.path)}" alt="${i.name}" loading="lazy"></div>
+        <div class="icon-meta">
+          <span class="brand-dot" style="background:${brandColor[i.brand]}" title="${i.brand}"></span>
+          <span class="icon-name">${i.name}</span>
+          ${state.view === 'list' ? `<span class="icon-path">${i.brand}/${i.useCase}/${i.category}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.icon-card').forEach(card => {
+      card.addEventListener('click', () => openModal(state.filtered[parseInt(card.dataset.idx)]));
+    });
+  }
+
+  // Modal
+  function openModal(icon) {
+    if (!icon) return;
+    $('modalTitle').textContent = icon.name;
+    $('modalImg').src = encodeURI(icon.path);
+    $('modalBrand').textContent = state.manifest.brands.find(b => b.key === icon.brand)?.label || icon.brand;
+    $('modalBrandDot').style.background = state.manifest.brands.find(b => b.key === icon.brand)?.color || '#888';
+    $('modalUseCase').textContent = icon.useCase;
+    $('modalCategory').textContent = icon.category;
+    $('modalName').textContent = icon.name;
+    $('modalPath').textContent = icon.path;
+    $('modalType').textContent = icon.isIllus ? 'Illustrative' : 'Utility';
+    $('download').href = encodeURI(icon.path);
+    $('download').setAttribute('download', icon.name + '.svg');
+    $('copyName').onclick = () => copyText(icon.name, $('copyName'));
+    $('copyPath').onclick = () => copyText(icon.path, $('copyPath'));
+    $('copySvg').onclick = async () => {
+      try {
+        const res = await fetch(encodeURI(icon.path));
+        const text = await res.text();
+        copyText(text, $('copySvg'));
+      } catch(e) { toast('Failed to load SVG'); }
+    };
+    $('modal').classList.add('open');
+  }
+  $('modalClose').addEventListener('click', () => $('modal').classList.remove('open'));
+  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').classList.remove('open'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('modal').classList.remove('open'); });
+
+  function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.innerHTML;
+      btn.classList.add('copied');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg> Copied';
+      toast('Copied to clipboard');
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 1400);
+    }).catch(() => toast('Copy failed'));
+  }
+</script>
+</body>
+</html>
